@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#121214">
+<title>Kantinho D'Regina — Pedidos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <div class="header-content">
+    <img src="images/logo1.png.jpeg" alt="Logotipo Kantinho D'Regina">
+    <div class="header-text">
+      <h1>Kantinho D'Regina</h1>
+      <p>O sabor caseiro que aquece a alma.</p>
+      <span id="store-status-badge" class="store-badge checking">A verificar horário…</span>
+    </div>
+  </div>
+  <div id="user-wallet-banner" class="user-banner" hidden>
+    <button class="link-btn" onclick="toggleAccountModal()" aria-label="Abrir a minha conta">
+      <span id="logged-username"></span> · Saldo <b><span id="wallet-balance">0</span> KZ</b>
+    </button>
+  </div>
+</header>
+
+<main>
+  <!-- ENTRAR -->
+  <section id="auth-section" class="container narrow">
+    <form class="card auth-card" onsubmit="userRegisterOrLogin(); return false;">
+      <h2>Entrar</h2>
+      <p class="muted">Crie a sua conta ou entre com o seu telemóvel.</p>
+      <label for="auth-name">Nome completo</label>
+      <input type="text" id="auth-name" placeholder="Ex: Ana Silva" autocomplete="name">
+      <label for="auth-phone">Telemóvel</label>
+      <input type="tel" id="auth-phone" placeholder="Ex: 923456789" inputmode="numeric" autocomplete="tel">
+      <button type="submit" class="btn btn-primary">Entrar</button>
+    </form>
+  </section>
+
+  <!-- APP -->
+  <section id="main-app" class="container" hidden>
+    <div class="wallet-card">
+      <div>
+        <p class="muted">Saldo disponível</p>
+        <h2 id="balance-display">0 KZ</h2>
+      </div>
+      <button class="btn btn-soft" onclick="toggleDepositModal()">Carregar saldo</button>
+    </div>
+
+    <div class="search-container">
+      <input type="search" id="search-input" placeholder="Pesquisar prato ou bebida" aria-label="Pesquisar no menu" oninput="filterProducts()">
+    </div>
+
+    <div class="category-selector" role="tablist">
+      <button class="cat-btn active" role="tab" onclick="switchTab('comidas', this)">Comidas</button>
+      <button class="cat-btn" role="tab" onclick="switchTab('bebidas', this)">Bebidas</button>
+    </div>
+
+    <div id="comidas" class="section-content active"><h2 class="section-title">Pratos</h2><div class="list"></div></div>
+    <div id="bebidas" class="section-content"><h2 class="section-title">Bebidas</h2><div class="list"></div></div>
+    <p id="no-results" class="empty-text" hidden>Nenhum item encontrado. Tente outra palavra.</p>
+  </section>
+</main>
+
+<!-- BARRA DO CARRINHO -->
+<button class="cart-bar" id="floating-cart-bar" onclick="toggleCartModal()" hidden>
+  <span>Ver carrinho (<span id="cart-count">0</span>)</span>
+  <span id="cart-total-bar">0 KZ</span>
+</button>
+
+<!-- DEPÓSITO -->
+<div id="deposit-modal" class="modal-overlay" onclick="closeOnOverlay(event, this)">
+  <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="dep-heading">
+    <div class="modal-header">
+      <h3 id="dep-heading">Carregar saldo</h3>
+      <button class="close-modal" onclick="toggleDepositModal()" aria-label="Fechar">✕</button>
+    </div>
+    <div class="form-group">
+      <label for="deposit-amount">Valor (KZ)</label>
+      <input type="number" id="deposit-amount" placeholder="Ex: 5000" min="1" inputmode="numeric">
+      <label for="deposit-method">Método de pagamento</label>
+      <select id="deposit-method" onchange="checkDepositMethod()">
+        <option value="BAI">Banco BAI (IBAN)</option>
+        <option value="BFA">Banco BFA (IBAN)</option>
+        <option value="BIC">Banco BIC (IBAN)</option>
+        <option value="Express">Multicaixa Express (telemóvel)</option>
+      </select>
+      <div id="deposit-info-box" class="payment-box">
+        <p class="box-title" id="dep-title">Banco BAI</p>
+        <p class="muted" id="dep-desc">Transfira para o IBAN:</p>
+        <div class="highlight-data" id="dep-data">AO06.0040.0000.1234.5678.1014.5</div>
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="requestDeposit()">Confirmar carregamento</button>
+  </div>
+</div>
+
+<!-- CARRINHO -->
+<div id="cart-modal" class="modal-overlay" onclick="closeOnOverlay(event, this)">
+  <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="cart-heading">
+    <div class="modal-header">
+      <h3 id="cart-heading">Finalizar pedido</h3>
+      <button class="close-modal" onclick="toggleCartModal()" aria-label="Fechar">✕</button>
+    </div>
+    <div id="cart-items-list" class="cart-items-container"></div>
+
+    <div class="cart-totals-section">
+      <div class="line"><span>Subtotal</span><span id="modal-subtotal">0 KZ</span></div>
+      <div class="line"><span>Taxa de entrega</span><span id="modal-delivery">0 KZ</span></div>
+      <div class="line total-line"><span>Total</span><span id="modal-grand-total">0 KZ</span></div>
+    </div>
+
+    <div class="form-group">
+      <label for="delivery-zone">Zona / bairro de entrega</label>
+      <select id="delivery-zone" onchange="updateCartTotals()"></select>
+      <label for="client-reference">Ponto de referência (opcional)</label>
+      <input type="text" id="client-reference" placeholder="Ex: perto da bomba, portão azul">
+    </div>
+
+    <p class="notice notice-ok">O valor é descontado automaticamente da sua carteira.</p>
+    <p class="notice notice-warn"><b>Atenção:</b> depois de enviado, o pedido não tem reembolso.</p>
+    <button class="btn btn-primary" onclick="checkoutWithBalance()">Pagar com saldo e enviar pedido</button>
+  </div>
+</div>
+
+<!-- CONTA -->
+<div id="account-modal" class="modal-overlay" onclick="closeOnOverlay(event, this)">
+  <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="acc-heading">
+    <div class="modal-header">
+      <h3 id="acc-heading">A minha conta</h3>
+      <button class="close-modal" onclick="toggleAccountModal()" aria-label="Fechar">✕</button>
+    </div>
+    <div class="account-info">
+      <p><span class="muted">Nome</span> <span id="account-name">-</span></p>
+      <p><span class="muted">Telefone</span> <span id="account-phone">-</span></p>
+      <p><span class="muted">Saldo</span> <b id="account-balance">0 KZ</b></p>
+    </div>
+    <h4 class="history-title">Pedidos recentes</h4>
+    <div id="client-orders-history" class="history"></div>
+    <button class="btn btn-danger" onclick="userLogout()">Terminar sessão</button>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
